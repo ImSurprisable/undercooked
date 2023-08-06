@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64235bf5fe603eb45857b372ac89c247, type: 3}
+  m_Name: Meaty Salad
+  m_EditorClassIdentifier: 
+  kitchenObjectSOList:
+  - {fileID: 11400000, guid: b75f1f5241b60fa48a12675a67777a3c, type: 2}
+  - {fileID: 11400000, guid: ac85450f885947f4793cff31a5f6715b, type: 2}
+  - {fileID: 11400000, guid: 4f686934ba0899f4294c74e82aaa12e9, type: 2}
+  recipeName: Meaty Salad
