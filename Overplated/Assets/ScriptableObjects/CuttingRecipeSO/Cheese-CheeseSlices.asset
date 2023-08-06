@@ -14,4 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   recipeInput: {fileID: 11400000, guid: cfeeef1931ba85d4eb24e60bfdaf5e20, type: 2}
   recipeOutput: {fileID: 11400000, guid: 1043177d14880e24893e89b71969cd98, type: 2}
-  cuttingProgressMax: 4
+  cuttingProgressMax: 3
