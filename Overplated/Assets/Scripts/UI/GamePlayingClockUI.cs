@@ -10,6 +10,15 @@ public class GamePlayingClockUI : MonoBehaviour
     [SerializeField] private Gradient imageGradient;
 
 
+
+    private void Start()
+    {
+        if (GameManager.Instance.GetGamemode() != GameManager.Gamemode.Timer)
+        {
+            gameObject.SetActive(false);
+        }
+    }
+
     private void Update()
     {
         timerImage.fillAmount = GameManager.Instance.GetGamePlayingTimerNormalized();

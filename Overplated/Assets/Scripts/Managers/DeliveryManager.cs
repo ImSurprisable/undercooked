@@ -36,16 +36,16 @@ public class DeliveryManager : MonoBehaviour
     {
         spawnRecipeTimerMax = GenerateRandomSpawnTime(spawnRecipeTimerMinMax);
         
-        spawnRecipeTimer = spawnRecipeTimerMax * firstRecipeSpawnMultiplier; // THIS IS A SET VALUE... modify the first recipe spawn time
+        spawnRecipeTimer = spawnRecipeTimerMax * firstRecipeSpawnMultiplier;
     }
 
     private void Update()
     {
-        spawnRecipeTimer -= (spawnRecipeTimer > 0f && GameManager.Instance.IsGamePlaying())  ?  Time.deltaTime : 0f;
+        spawnRecipeTimer -= (spawnRecipeTimer > 0f && GameManager.Instance.IsGamePlaying() && !RecipeListIsFull())  ?  Time.deltaTime : 0f;
 
         if (spawnRecipeTimer <= 0f)
         {
-            spawnRecipeTimerMax = GenerateRandomSpawnTime(spawnRecipeTimerMinMax);
+            spawnRecipeTimerMax = GenerateRandomSpawnTime(spawnRecipeTimerMinMax * GameManager.Instance.GetEvaluatedRecipeDifficulty());
             spawnRecipeTimer = spawnRecipeTimerMax;
 
             if (waitingRecipeSOList.Count < waitingRecipesMax)
@@ -127,5 +127,10 @@ public class DeliveryManager : MonoBehaviour
     public int GetFailedRecipesAmount()
     {
         return failedRecipesAmount;
+    }
+
+    public bool RecipeListIsFull()
+    {
+        return waitingRecipeSOList.Count >= waitingRecipesMax;
     }
 }

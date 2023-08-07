@@ -9,6 +9,9 @@ using UnityEngine.UI;
 public class OptionsUI : MonoBehaviour
 {
 
+    private const string PLAYER_PREFS_BEST_SURVIVAL_SCORE = "BestSurvivalScore";
+    private const string PLAYER_PREFS_BEST_TIMED_SCORE = "BestTimedScore";
+
     public static OptionsUI Instance { get; private set; }
     
     [SerializeField] private Slider musicSlider;
@@ -42,6 +45,10 @@ public class OptionsUI : MonoBehaviour
     [SerializeField] private Button gamepadInteractAlternateButton;
     [SerializeField] private TextMeshProUGUI gamepadInteractAlternateText;
 
+    [Space]
+
+    [SerializeField] private Button resetBestButton;
+
 
     private void Awake()
     {
@@ -51,6 +58,13 @@ public class OptionsUI : MonoBehaviour
             PlayerPrefs.Save();
             Hide();
             GamePauseUI.Instance.Show();
+        });
+        resetBestButton.onClick.AddListener(() => {
+            PlayerPrefs.SetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, 0);
+            PlayerPrefs.SetInt(PLAYER_PREFS_BEST_TIMED_SCORE, 0);
+            PlayerPrefs.Save();
+
+            Debug.LogWarning("Best score reset");
         });
         
         moveUpButton.onClick.AddListener(() => { RebindBinding(GameInput.Binding.Move_Up); });

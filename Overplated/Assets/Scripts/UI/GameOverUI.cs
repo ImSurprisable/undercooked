@@ -3,13 +3,38 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameOverUI : MonoBehaviour
 {
-    
-    [SerializeField] TextMeshProUGUI recipesDeliveredText;
-    [SerializeField] TextMeshProUGUI recipesFailedText;
 
+    private const string NEW_BEST = "NewBest";
+    private const string PLAYER_PREFS_BEST_SURVIVAL_SCORE = "BestSurvivalScore";
+    private const string PLAYER_PREFS_BEST_TIMED_SCORE = "BestTimedScore";
+    
+    [SerializeField] private TextMeshProUGUI recipesDeliveredText;
+    [SerializeField] private TextMeshProUGUI recipesFailedText;
+    [SerializeField] private TextMeshProUGUI recipesDeliveredBestText;
+    [SerializeField] private Button restartButton;
+    [SerializeField] private Button mainMenuButton;
+
+    private Animator animator;
+
+
+
+
+
+    private void Awake()
+    {
+        animator = GetComponent<Animator>();
+
+        restartButton.onClick.AddListener(() => {
+            Loader.Load(Loader.Scene.GameScene);
+        });
+        mainMenuButton.onClick.AddListener(() => {
+            Loader.Load(Loader.Scene.MainMenuScene);
+        });
+    }
 
     private void Start()
     {
@@ -25,6 +50,20 @@ public class GameOverUI : MonoBehaviour
 
             recipesDeliveredText.text = DeliveryManager.Instance.GetSuccessfulRecipesAmount().ToString();
             recipesFailedText.text = DeliveryManager.Instance.GetFailedRecipesAmount().ToString();
+
+            if (GameManager.Instance.GetGamemode() == GameManager.Gamemode.Timer) 
+            {
+                recipesDeliveredBestText.text = PlayerPrefs.GetInt(PLAYER_PREFS_BEST_TIMED_SCORE, 0).ToString();
+                
+            }
+            else if (GameManager.Instance.GetGamemode() == GameManager.Gamemode.Survival)
+            {
+                recipesDeliveredBestText.text = PlayerPrefs.GetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, 0).ToString();
+            }
+
+            if (GameManager.Instance.IsNewBest()) {
+                animator.SetBool(NEW_BEST, true);
+            }
         }
         else {
             Hide();

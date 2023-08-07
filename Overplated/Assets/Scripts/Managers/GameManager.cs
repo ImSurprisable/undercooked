@@ -1,11 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using UnityEditor.Rendering;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+
+    private const string PLAYER_PREFS_BEST_SURVIVAL_SCORE = "BestSurvivalScore";
+    private const string PLAYER_PREFS_BEST_TIMED_SCORE = "BestTimedScore";
 
     public static GameManager Instance { get; private set; }
 
@@ -13,15 +17,31 @@ public class GameManager : MonoBehaviour
     public event EventHandler OnStateChanged;
     public event EventHandler OnGamePaused;
     public event EventHandler OnGameUnpaused;
+    public event EventHandler<IHasProgress.OnProgressChangedEventArgs> OnHealhChanged;
     
     private enum State { WaitingToStart, CountdownToStart, GamePlaying, GameOver }
     private State state;
+    public enum Gamemode { Timer, Survival }
+    [SerializeField] private Gamemode gamemode;
 
     private float countdownToStartTimer;
     [SerializeField] float countdownToStartTimerMax;
     private float gamePlayingTimer;
     [SerializeField] float gamePlayingTimerMax;
+
+    [Space]
+
+    [SerializeField] float healthBarFillSpeed;
+    [SerializeField] float healthBarEmptySpeed;
+    [SerializeField] private AnimationCurve recipeSpawnrateDifficultyCurve;
+    [SerializeField] private float maxDifficultyScaleTime;
+
+    private float currentHealthBarValue = 0f;
     private bool isGamePaused = false;
+
+    private bool newBest = false;
+
+
     
 
     private void Awake()
@@ -37,7 +57,7 @@ public class GameManager : MonoBehaviour
         GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
 
         countdownToStartTimer = countdownToStartTimerMax;
-        gamePlayingTimer = gamePlayingTimerMax;
+        gamePlayingTimer = gamemode == Gamemode.Timer  ?  gamePlayingTimerMax : 0f;
     }
 
     private void GameInput_OnInteractAction(object sender, EventArgs e)
@@ -67,10 +87,51 @@ public class GameManager : MonoBehaviour
                 }
                 break;
             case State.GamePlaying:
-                gamePlayingTimer -= gamePlayingTimer > 0  ?  Time.deltaTime : 0f;
-                if (gamePlayingTimer <= 0f) {
-                    state = State.GameOver;
-                    InvokeStateChanged();
+                if (gamemode == Gamemode.Timer)
+                {
+                    gamePlayingTimer -= gamePlayingTimer > 0  ?  Time.deltaTime : 0f;
+                    if (gamePlayingTimer <= 0f) {
+                        if (PlayerPrefs.GetInt(PLAYER_PREFS_BEST_TIMED_SCORE, 0) < DeliveryManager.Instance.GetSuccessfulRecipesAmount()) 
+                        {
+                            PlayerPrefs.SetInt(PLAYER_PREFS_BEST_TIMED_SCORE, DeliveryManager.Instance.GetSuccessfulRecipesAmount());
+                            PlayerPrefs.Save();
+
+                            newBest = true;
+                        }
+
+                        state = State.GameOver;
+                        InvokeStateChanged();
+                    }
+                }
+                else
+                {
+                    gamePlayingTimer += Time.deltaTime;
+
+                    if (DeliveryManager.Instance.RecipeListIsFull())
+                    {
+                        // fill health bar
+                        currentHealthBarValue += currentHealthBarValue < 1  ?  healthBarFillSpeed * Time.deltaTime : 0f;
+                        InvokeHealthBarChanged(currentHealthBarValue);
+
+                        if (currentHealthBarValue >= 1) {
+                            if (PlayerPrefs.GetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, 0) < DeliveryManager.Instance.GetSuccessfulRecipesAmount()) 
+                            {
+                                PlayerPrefs.SetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, DeliveryManager.Instance.GetSuccessfulRecipesAmount());
+                                PlayerPrefs.Save();
+
+                                newBest = true;
+                            }
+
+                            state = State.GameOver;
+                            InvokeStateChanged();
+                        }
+                    }
+                    else
+                    {
+                        // empty health bar
+                        currentHealthBarValue = currentHealthBarValue > 0  ?  currentHealthBarValue - healthBarEmptySpeed * Time.deltaTime : 0f;
+                        InvokeHealthBarChanged(currentHealthBarValue);
+                    }
                 }
                 break;
             case State.GameOver:
@@ -120,5 +181,27 @@ public class GameManager : MonoBehaviour
             Time.timeScale = 1f;
             OnGameUnpaused?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    private void InvokeHealthBarChanged(float _progressNormalized)
+    {
+        OnHealhChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs {
+            progressNormalized = _progressNormalized
+        });
+    }
+
+    public float GetEvaluatedRecipeDifficulty()
+    {
+        return recipeSpawnrateDifficultyCurve.Evaluate(gamePlayingTimer / maxDifficultyScaleTime);
+    }
+
+    public Gamemode GetGamemode()
+    {
+        return gamemode;
+    }
+
+    public bool IsNewBest()
+    {
+        return newBest;
     }
 }

@@ -204,8 +204,8 @@ public class PlayerController : MonoBehaviour, IKitchenObjectParent
 
         isWalking = moveDir != Vector3.zero;
 
-        float lerpSpeed = Mathf.Pow(0.001f, (rotateSpeed*25f) * Time.deltaTime);
-        transform.forward = Vector3.Slerp(transform.forward, lastMoveDir, lerpSpeed);
+        float lerpSpeed = Mathf.Pow(0.001f, rotateSpeed * Time.deltaTime);
+        transform.forward = Vector3.Slerp(transform.forward, lastMoveDir, rotateSpeed * Time.deltaTime);
     }
 
     private void SetSelectedCounter(BaseCounter selectedCounter)

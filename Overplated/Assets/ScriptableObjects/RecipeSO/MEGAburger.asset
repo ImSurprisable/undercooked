@@ -15,7 +15,7 @@ MonoBehaviour:
   kitchenObjectSOList:
   - {fileID: 11400000, guid: aa0fddd95a8086d46b36d8002602f5e6, type: 2}
   - {fileID: 11400000, guid: b75f1f5241b60fa48a12675a67777a3c, type: 2}
-  - {fileID: 11400000, guid: 1043177d14880e24893e89b71969cd98, type: 2}
   - {fileID: 11400000, guid: ac85450f885947f4793cff31a5f6715b, type: 2}
+  - {fileID: 11400000, guid: 1043177d14880e24893e89b71969cd98, type: 2}
   - {fileID: 11400000, guid: 4f686934ba0899f4294c74e82aaa12e9, type: 2}
   recipeName: MEGAburger

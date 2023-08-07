@@ -20,3 +20,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b75f1f5241b60fa48a12675a67777a3c, type: 2}
   - {fileID: 11400000, guid: dda65bfef3d3c894a8aefc5b54599bf1, type: 2}
   - {fileID: 11400000, guid: 4f686934ba0899f4294c74e82aaa12e9, type: 2}
+  bannedKitchenObjectCombinations:
+  - kitchenObjectSOs:
+    - {fileID: 11400000, guid: f1f74adaed8a0de408663aae21eba536, type: 2}
+    - {fileID: 11400000, guid: b75f1f5241b60fa48a12675a67777a3c, type: 2}
+    - {fileID: 11400000, guid: dda65bfef3d3c894a8aefc5b54599bf1, type: 2}
