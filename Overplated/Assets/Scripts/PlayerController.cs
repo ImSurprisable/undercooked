@@ -1,18 +1,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Reflection;
-using System.Runtime.InteropServices.WindowsRuntime;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class PlayerController : MonoBehaviour, IKitchenObjectParent
+public class PlayerController : NetworkBehaviour, IKitchenObjectParent
 {
 
     private const string INTERACT_ALTERNATE = "InteractAlternate";
 
-    public static PlayerController Instance { get; private set; }
+    //public static PlayerController Instance { get; private set; }
 
     public event EventHandler OnObjectPickup;
     public event EventHandler<OnSelectedCounterChangeEventArgs> OnSelectedCounterChange;
@@ -21,7 +19,6 @@ public class PlayerController : MonoBehaviour, IKitchenObjectParent
         public BaseCounter selectedCounter;
     }
 
-    [SerializeField] private GameInput gameInput;
     [SerializeField] private LayerMask countersLayerMask;
     [SerializeField] private Transform kitchenObjectHoldPoint;
     [SerializeField] private PlayerAnimator playerAnimator;
@@ -44,18 +41,15 @@ public class PlayerController : MonoBehaviour, IKitchenObjectParent
 
     private void Awake()
     {
-        if (Instance != null) {
-            Debug.LogError("There is more than one PlayerController instance");
-        }
-        Instance = this;
+        // Instance = this;
     }
 
     private void Start()
     {
         mainCamera = Camera.main;
         
-        gameInput.OnInteractAction += GameInput_OnInteractAction;
-        gameInput.OnInteractAlternateAction += GameInput_OnInteractAlternateAction;
+        GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
+        GameInput.Instance.OnInteractAlternateAction += GameInput_OnInteractAlternateAction;
     }
     private void GameInput_OnInteractAction(object sender, System.EventArgs e)
     {
@@ -168,7 +162,7 @@ public class PlayerController : MonoBehaviour, IKitchenObjectParent
 
     private void HandleMovement()
     {
-        Vector2 inputVector = gameInput.GetMovementVectorNormalized();
+        Vector2 inputVector = GameInput.Instance.GetMovementVectorNormalized();
 
         Vector3 moveDir = new Vector3(inputVector.x, 0f, inputVector.y);
 
