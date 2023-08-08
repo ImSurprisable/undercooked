@@ -51,6 +51,7 @@ public class CuttingCounter : BaseCounter, IHasProgress
             else if (player.HasKitchenObject() && player.CanSwapItemsOnCounters())
             {
                 // Player is holding a non-plate object & swapping is allowed
+                ResetCuttingProgressServerRpc();
                 SwapItemsServerRpc(player.NetworkObject);
             }
             else if (!player.HasKitchenObject())
