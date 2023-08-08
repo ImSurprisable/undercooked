@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class PlatesCounter : BaseCounter
@@ -27,20 +28,33 @@ public class PlatesCounter : BaseCounter
 
     private void Update()
     {
+        if (!IsServer) return;
+
         spawnPlateTimer -= (spawnPlateTimer > 0f && GameManager.Instance.IsGamePlaying())  ?  Time.deltaTime : 0f;
 
         if (spawnPlateTimer <= 0f)
         {
             if (platesSpawnedAmount < platesSpawnedAmountMax)
             {
-                platesSpawnedAmount++;
-                OnPlateSpawned?.Invoke(this, EventArgs.Empty);
+                SpawnPlateServerRpc();
             }
 
             spawnPlateTimer = spawnPlateTimerCooldown;
         }
     }
 
+    [ServerRpc]
+    private void SpawnPlateServerRpc()
+    {
+        SpawnPlateClientRpc();
+    }
+
+    [ClientRpc]
+    private void SpawnPlateClientRpc()
+    {
+        platesSpawnedAmount++;
+        OnPlateSpawned?.Invoke(this, EventArgs.Empty);
+    }
 
     public override void Interact(PlayerController player)
     {
@@ -52,24 +66,53 @@ public class PlatesCounter : BaseCounter
                 // There is a plate
                 KitchenObject.SpawnKitchenObject(plateKitchenObjectSO, player);
 
-                platesSpawnedAmount--;
-                OnPlateRemoved?.Invoke(this, EventArgs.Empty);
+                InteractLogicServerRpc();
             }
         }
+        /* MECHANIC REMOVED OUT UNTIL PLATE INGREDIENT SYNC LOGIC IS ADDED
         else if (PlayerIngredientIsValid(player.GetKitchenObject().GetKitchenObjectSO()))
         {
-            KitchenObject.SpawnKitchenObject(plateKitchenObjectSO, this);
-            GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject);
+            InteractPlateLogicServerRpc(player.GetNetworkObject());
 
-            StartCoroutine(DelayInvoke(plateKitchenObject, player.GetKitchenObject()));
-            player.GetKitchenObject().DestroySelf();
-
-            plateKitchenObject.SetKitchenObjectParent(player);
-
-            platesSpawnedAmount--;
-            OnPlateRemoved?.Invoke(this, EventArgs.Empty);
+            InteractLogicServerRpc();
         }
+        */
     }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void InteractLogicServerRpc()
+    {
+        InteractLogicClientRpc();
+    }
+
+    [ClientRpc]
+    private void InteractLogicClientRpc()
+    {
+        platesSpawnedAmount--;
+        OnPlateRemoved?.Invoke(this, EventArgs.Empty);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void InteractPlateLogicServerRpc(NetworkObjectReference playerNetworkObjectReference)
+    {
+        InteractPlateLogicClientRpc(playerNetworkObjectReference);
+    }
+
+    [ClientRpc]
+    private void InteractPlateLogicClientRpc(NetworkObjectReference playerNetworkObjectReference)
+    {
+        playerNetworkObjectReference.TryGet(out NetworkObject playerNetworkObject);
+        IKitchenObjectParent player = playerNetworkObject.GetComponent<IKitchenObjectParent>();
+
+        KitchenObject.SpawnKitchenObject(plateKitchenObjectSO, this);
+        GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject);
+
+        StartCoroutine(DelayInvoke(plateKitchenObject, player.GetKitchenObject()));
+        player.GetKitchenObject().DestroySelf();
+
+        plateKitchenObject.SetKitchenObjectParent(player);
+    }
+
 
     IEnumerator DelayInvoke(PlateKitchenObject plateKitchenObject, KitchenObject ingredientKitchenObject)
     {

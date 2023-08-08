@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
 public class CuttingCounter : BaseCounter, IHasProgress
@@ -30,21 +31,24 @@ public class CuttingCounter : BaseCounter, IHasProgress
             if (player.HasKitchenObject() && !player.GetKitchenObject().TryGetPlate(out _))
             {
                 // Player is carrying a non-plate object
-                player.GetKitchenObject().SetKitchenObjectParent(this);
+                KitchenObject kitchenObject = player.GetKitchenObject();
+                kitchenObject.SetKitchenObjectParent(this);
+
+                ResetCuttingProgressServerRpc(); // resets the progress bar
             }
         }
         else
         {
-            CuttingRecipeSO cuttingRecipeSO = GetCuttingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO());
 
             // Counter has a kitchen object
             if (player.HasKitchenObject() && player.GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject))
             {
                 // Player is holding a plate
                 if (plateKitchenObject.TryAddIngredient(GetKitchenObject().GetKitchenObjectSO())) {
-                GetKitchenObject().DestroySelf();
+                    KitchenObject.DestroyKitchenObject(GetKitchenObject());
                 }
             }
+            /* DISABLED UNTIL SWAPPING IS FIXED
             else if (player.HasKitchenObject() && player.CanSwapItemsOnCounters())
             {
                 // Player is holding a non-plate object & swapping is allowed
@@ -53,43 +57,81 @@ public class CuttingCounter : BaseCounter, IHasProgress
                 GetKitchenObject().SetKitchenObjectParent(player);
                 playersKitchenObject.SetKitchenObjectParent(this);
             }
-            else
+            */
+            else if (!player.HasKitchenObject())
             {
                 // Player is not holding anything
                 GetKitchenObject().SetKitchenObjectParent(player);
-            }
-            cuttingProgress = 0;
 
-            TriggerOnProgressChangedEvent(cuttingRecipeSO);
+                ResetCuttingProgressServerRpc();
+            }
         }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void ResetCuttingProgressServerRpc()
+    {
+        ResetCuttingProgressClientRpc();
+    }
+
+    [ClientRpc]
+    private void ResetCuttingProgressClientRpc()
+    {
+        cuttingProgress = 0;
+
+        OnProgressChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs {
+                progressNormalized = 0f
+            });
     }
 
     public override void InteractAlternate(PlayerController player)
     {
         if (HasKitchenObject() && !player.HasKitchenObject())
         {
-            CuttingRecipeSO cuttingRecipeSO = GetCuttingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO());
+            CutObjectServerRpc();
+            TestCuttingProgressDoneServerRpc();
+        }
+    }
 
-            if (cuttingRecipeSO != null)
-            {
-                cuttingProgress++;
-                
-                OnCut?.Invoke(this, EventArgs.Empty);
-                OnAnyCut?.Invoke(this, EventArgs.Empty);
-                TriggerOnProgressChangedEvent(cuttingRecipeSO);
+    [ServerRpc(RequireOwnership = false)]
+    private void CutObjectServerRpc()
+    {
+        CutObjectClientRpc();
+    }
 
-                if (cuttingProgress >= cuttingRecipeSO.cuttingProgressMax)
-                {
-                    KitchenObjectSO cuttingRecipeOutputSO = cuttingRecipeSO.recipeOutput;
-                    GetKitchenObject().DestroySelf();
+    [ClientRpc]
+    private void CutObjectClientRpc()
+    {
+        CuttingRecipeSO cuttingRecipeSO = GetCuttingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO());
 
-                    KitchenObject.SpawnKitchenObject(cuttingRecipeOutputSO, this);
-                }
-            }
-            else
-            {
-                Debug.Log("Invalid recipe.");
-            }
+        if (cuttingRecipeSO != null)
+        {
+            cuttingProgress++;
+            
+            OnCut?.Invoke(this, EventArgs.Empty);
+            OnAnyCut?.Invoke(this, EventArgs.Empty);
+            TriggerOnProgressChangedEvent(cuttingRecipeSO);
+        }
+        else
+        {
+            Debug.Log("Invalid recipe.");
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void TestCuttingProgressDoneServerRpc()
+    {
+        CuttingRecipeSO cuttingRecipeSO = GetCuttingRecipeSOWithInput(GetKitchenObject().GetKitchenObjectSO());
+        
+        if (cuttingRecipeSO == null) return;
+        
+        if (cuttingProgress >= cuttingRecipeSO.cuttingProgressMax)
+        {
+            KitchenObjectSO cuttingRecipeOutputSO = cuttingRecipeSO.recipeOutput;
+
+            KitchenObject.DestroyKitchenObject(GetKitchenObject());
+
+            KitchenObject.SpawnKitchenObject(cuttingRecipeOutputSO, this);
         }
     }
 

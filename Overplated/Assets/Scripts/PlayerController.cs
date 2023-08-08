@@ -86,10 +86,6 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
 
             playerAnimator.PlayInteractAnimation();
         }
-        else
-        {
-            Debug.Log("The counter you are trying is either null or doesn't support that action.");
-        }
     }
 
     private void Update()

@@ -23,13 +23,14 @@ public class ClearCounter : BaseCounter
             if (player.HasKitchenObject() && player.GetKitchenObject().TryGetPlate(out PlateKitchenObject plateKitchenObject) && TryAddIngredientToPlate(plateKitchenObject, this))
             {
                 // Player has a plate & the counter has a valid ingredient
-                GetKitchenObject().DestroySelf();
+                KitchenObject.DestroyKitchenObject(GetKitchenObject());
             }
             else if (GetKitchenObject().TryGetPlate(out PlateKitchenObject counterPlateKitchenObject) && TryAddIngredientToPlate(counterPlateKitchenObject, player))
             {
                 // Counter has a plate & the player has a valid ingredient
-                player.GetKitchenObject().DestroySelf();
+                KitchenObject.DestroyKitchenObject(player.GetKitchenObject());
             }
+            /* DISABLED UNTIL SWITCHING IS FIXED
             else if (player.HasKitchenObject() && player.CanSwapItemsOnCounters())
             {
                 // Player is holding a non-plate object & swapping is allowed
@@ -38,6 +39,7 @@ public class ClearCounter : BaseCounter
                 GetKitchenObject().SetKitchenObjectParent(player);
                 playersKitchenObject.SetKitchenObjectParent(this);
             }
+            */
             else if (!player.HasKitchenObject())
             {
                 // Player is not holding anything
