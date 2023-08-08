@@ -58,6 +58,11 @@ public class GameManager : MonoBehaviour
 
         countdownToStartTimer = countdownToStartTimerMax;
         gamePlayingTimer = gamemode == Gamemode.Timer  ?  gamePlayingTimerMax : 0f;
+
+
+        // DEBUG SKIP INTRO
+        state = State.CountdownToStart;
+        OnStateChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void GameInput_OnInteractAction(object sender, EventArgs e)
@@ -145,6 +150,10 @@ public class GameManager : MonoBehaviour
     }
 
 
+    public bool IsTutorialOpen()
+    {
+        return state == State.WaitingToStart;
+    }
     public bool IsCountdownToStartActive()
     {
         return state == State.CountdownToStart;

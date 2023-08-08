@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.Tracing;
@@ -13,7 +14,19 @@ public class SelectedCounterVisual : MonoBehaviour
     
     private void Start()
     {
-        //PlayerController.Instance.OnSelectedCounterChange += PlayerController_OnSelectedCounterChanged;
+        if (PlayerController.LocalInstance != null) {
+            PlayerController.LocalInstance.OnSelectedCounterChange += PlayerController_OnSelectedCounterChanged;
+        } else {
+            PlayerController.OnAnyPlayerSpawned += PlayerController_OnAnyPlayerSpawned;
+        }
+    }
+
+    private void PlayerController_OnAnyPlayerSpawned(object sender, EventArgs e)
+    {
+        if (PlayerController.LocalInstance != null) {
+            PlayerController.LocalInstance.OnSelectedCounterChange -= PlayerController_OnSelectedCounterChanged;
+            PlayerController.LocalInstance.OnSelectedCounterChange += PlayerController_OnSelectedCounterChanged;
+        }
     }
 
     private void PlayerController_OnSelectedCounterChanged(object sender, PlayerController.OnSelectedCounterChangeEventArgs e) 

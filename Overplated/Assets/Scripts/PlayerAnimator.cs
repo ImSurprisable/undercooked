@@ -1,8 +1,9 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class PlayerAnimator : MonoBehaviour
+public class PlayerAnimator : NetworkBehaviour
 {
     private const string IS_WALKING = "IsWalking";
     private const string TRIGGER_INTERACT = "TriggerInteract";
@@ -22,6 +23,8 @@ public class PlayerAnimator : MonoBehaviour
 
     public void PlayInteractAnimation()
     {
+        if (!IsOwner) return;
+        
         animator.SetTrigger(TRIGGER_INTERACT);
     }
 }

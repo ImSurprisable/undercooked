@@ -1,14 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 
-public class BaseCounter : MonoBehaviour, IKitchenObjectParent
+public class BaseCounter : NetworkBehaviour, IKitchenObjectParent
 {
 
     public static event EventHandler OnAnyObjectPlacedHere;
 
-        public static void ResetStaticData() {
+    public static void ResetStaticData() {
         OnAnyObjectPlacedHere = null;
     }
 
@@ -60,5 +61,9 @@ public class BaseCounter : MonoBehaviour, IKitchenObjectParent
     {
         return counterFrontPoint;
     }
-
+    
+    public NetworkObject GetNetworkObject()
+    {
+        return NetworkObject;
+    }
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -10,7 +11,14 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
 
     private const string INTERACT_ALTERNATE = "InteractAlternate";
 
-    //public static PlayerController Instance { get; private set; }
+    public static event EventHandler OnAnyPlayerSpawned;
+    public static event EventHandler OnAnyObjectPickup;
+
+    public static void ResetStaticData() {
+        OnAnyPlayerSpawned = null;
+    }
+
+    public static PlayerController LocalInstance { get; private set; }
 
     public event EventHandler OnObjectPickup;
     public event EventHandler<OnSelectedCounterChangeEventArgs> OnSelectedCounterChange;
@@ -39,10 +47,8 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
     private Camera mainCamera;
     private Vector3 lastCursorWorldPosition = new Vector3(999f, 999f, 999f);
 
-    private void Awake()
-    {
-        // Instance = this;
-    }
+
+
 
     private void Start()
     {
@@ -51,6 +57,16 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
         GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
         GameInput.Instance.OnInteractAlternateAction += GameInput_OnInteractAlternateAction;
     }
+
+    public override void OnNetworkSpawn()
+    {
+        if (IsOwner) {
+            LocalInstance = this;
+        }
+
+        OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
+    }
+
     private void GameInput_OnInteractAction(object sender, System.EventArgs e)
     {
         if (!GameManager.Instance.IsGamePlaying()) return;
@@ -78,6 +94,8 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
 
     private void Update()
     {
+        if (!IsOwner) return;
+
         HandleMovement();
         HandleInteractions();
     }
@@ -236,6 +254,7 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
 
         if (kitchenObject != null && playSound) {
             OnObjectPickup?.Invoke(this, EventArgs.Empty);
+            OnAnyObjectPickup?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -252,5 +271,10 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
     public bool HasKitchenObject()
     {
         return kitchenObject != null;
+    }
+
+    public NetworkObject GetNetworkObject()
+    {
+        return NetworkObject;
     }
 }

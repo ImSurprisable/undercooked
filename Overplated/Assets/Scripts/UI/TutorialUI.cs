@@ -29,7 +29,7 @@ public class TutorialUI : MonoBehaviour
 
     private void GameManager_OnStateChanged(object sender, EventArgs e)
     {
-        if (GameManager.Instance.IsCountdownToStartActive()) {
+        if (!GameManager.Instance.IsTutorialOpen()) {
             Hide();
         }
     }
