@@ -2,10 +2,11 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using Unity.Netcode;
 using UnityEditor.Rendering;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public class GameManager : NetworkBehaviour
 {
 
     private const string PLAYER_PREFS_BEST_SURVIVAL_SCORE = "BestSurvivalScore";
@@ -17,17 +18,22 @@ public class GameManager : MonoBehaviour
     public event EventHandler OnStateChanged;
     public event EventHandler OnGamePaused;
     public event EventHandler OnGameUnpaused;
+    public event EventHandler OnLocalPlayerReadyChanged;
     public event EventHandler<IHasProgress.OnProgressChangedEventArgs> OnHealhChanged;
     
     private enum State { WaitingToStart, CountdownToStart, GamePlaying, GameOver }
-    private State state;
+    private NetworkVariable<State> state = new NetworkVariable<State>(State.WaitingToStart);
+
     public enum Gamemode { Timer, Survival }
     [SerializeField] private Gamemode gamemode;
 
-    private float countdownToStartTimer;
-    [SerializeField] float countdownToStartTimerMax;
-    private float gamePlayingTimer;
+    private Dictionary<ulong, bool> playerReadyDictionary = new Dictionary<ulong, bool>();
+
+    [SerializeField] private float countdownToStartTimerMax;
+    private NetworkVariable<float> countdownToStartTimer = new NetworkVariable<float>(3f);
     [SerializeField] float gamePlayingTimerMax;
+    private NetworkVariable<float> gamePlayingTimer = new NetworkVariable<float>(0f);
+
 
     [Space]
 
@@ -38,7 +44,7 @@ public class GameManager : MonoBehaviour
 
     private float currentHealthBarValue = 0f;
     private bool isGamePaused = false;
-
+    private bool isLocalPlayerReady;
     private bool newBest = false;
 
     public static bool playerCollisionsEnabled;
@@ -50,8 +56,6 @@ public class GameManager : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        state = State.WaitingToStart;
-        InvokeStateChanged();
     }
 
     private void Start()
@@ -59,24 +63,53 @@ public class GameManager : MonoBehaviour
         GameInput.Instance.OnPauseAction += GameInput_OnPauseAction;
         GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
 
-        countdownToStartTimer = countdownToStartTimerMax;
-        gamePlayingTimer = gamemode == Gamemode.Timer  ?  gamePlayingTimerMax : 0f;
-
-
-        // DEBUG SKIP INTRO
-        state = State.CountdownToStart;
-        OnStateChanged?.Invoke(this, EventArgs.Empty);
+        countdownToStartTimer.Value = countdownToStartTimerMax;
+        gamePlayingTimer.Value = gamemode == Gamemode.Timer  ?  gamePlayingTimerMax : 0f;
 
         // DEBUG MANUALLY SET PLAYERCOLLISIONS (ADD TO LOBBY MENU!!!!)
         playerCollisionsEnabled = playerCollisionsEnabledEditor;
     }
 
+    public override void OnNetworkSpawn()
+    {
+        state.OnValueChanged += State_OnValueChanged;
+    }
+
+    private void State_OnValueChanged(State previousValue, State newValue)
+    {
+        InvokeStateChanged();
+    }
+
     private void GameInput_OnInteractAction(object sender, EventArgs e)
     {
-        if (state == State.WaitingToStart) 
+        if (state.Value == State.WaitingToStart) 
         {
-            state = State.CountdownToStart;
-            OnStateChanged?.Invoke(this, EventArgs.Empty);
+            isLocalPlayerReady = true;
+            OnLocalPlayerReadyChanged?.Invoke(this, EventArgs.Empty);
+
+            SetPlayerReadyServerRpc();
+
+        }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void SetPlayerReadyServerRpc(ServerRpcParams serverRpcParams = default)
+    {
+        playerReadyDictionary[serverRpcParams.Receive.SenderClientId] = true;
+
+        bool allClientsReady = true;
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (!playerReadyDictionary.ContainsKey(clientId) || !playerReadyDictionary[clientId])
+            {
+                // This player is NOT ready
+                allClientsReady = false;
+                break;
+            }
+        }
+
+        if (allClientsReady) {
+            state.Value = State.CountdownToStart;
         }
     }
 
@@ -87,21 +120,22 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        switch (state) {
+        if (!IsServer) return;
+
+        switch (state.Value) {
             case State.WaitingToStart:
                 break;
             case State.CountdownToStart:
-                countdownToStartTimer -= countdownToStartTimer > 0  ?  Time.deltaTime : 0f;
-                if (countdownToStartTimer <= 0f) {
-                    state = State.GamePlaying;
-                    InvokeStateChanged();
+                countdownToStartTimer.Value -= countdownToStartTimer.Value > 0  ?  Time.deltaTime : 0f;
+                if (countdownToStartTimer.Value <= 0f) {
+                    state.Value = State.GamePlaying;
                 }
                 break;
             case State.GamePlaying:
                 if (gamemode == Gamemode.Timer)
                 {
-                    gamePlayingTimer -= gamePlayingTimer > 0  ?  Time.deltaTime : 0f;
-                    if (gamePlayingTimer <= 0f) {
+                    gamePlayingTimer.Value -= gamePlayingTimer.Value > 0  ?  Time.deltaTime : 0f;
+                    if (gamePlayingTimer.Value <= 0f) {
                         if (PlayerPrefs.GetInt(PLAYER_PREFS_BEST_TIMED_SCORE, 0) < DeliveryManager.Instance.GetSuccessfulRecipesAmount()) 
                         {
                             PlayerPrefs.SetInt(PLAYER_PREFS_BEST_TIMED_SCORE, DeliveryManager.Instance.GetSuccessfulRecipesAmount());
@@ -110,13 +144,12 @@ public class GameManager : MonoBehaviour
                             newBest = true;
                         }
 
-                        state = State.GameOver;
-                        InvokeStateChanged();
+                        state.Value = State.GameOver;
                     }
                 }
                 else
                 {
-                    gamePlayingTimer += Time.deltaTime;
+                    gamePlayingTimer.Value += Time.deltaTime;
 
                     if (DeliveryManager.Instance.RecipeListIsFull())
                     {
@@ -133,8 +166,7 @@ public class GameManager : MonoBehaviour
                                 newBest = true;
                             }
 
-                            state = State.GameOver;
-                            InvokeStateChanged();
+                            state.Value = State.GameOver;
                         }
                     }
                     else
@@ -158,29 +190,34 @@ public class GameManager : MonoBehaviour
 
     public bool IsTutorialOpen()
     {
-        return state == State.WaitingToStart;
+        return state.Value == State.WaitingToStart;
     }
     public bool IsCountdownToStartActive()
     {
-        return state == State.CountdownToStart;
+        return state.Value == State.CountdownToStart;
     }
     public bool IsGamePlaying()
     {
-        return state == State.GamePlaying;
+        return state.Value == State.GamePlaying;
     }
     public bool IsGameOver()
     {
-        return state == State.GameOver;
+        return state.Value == State.GameOver;
+    }
+
+    public bool IsLocalPlayerReady()
+    {
+        return isLocalPlayerReady;  
     }
 
     public float GetCountdownToStartTimer()
     {
-        return countdownToStartTimer;
+        return countdownToStartTimer.Value;
     }
 
     public float GetGamePlayingTimerNormalized()
     {
-        return gamePlayingTimer / gamePlayingTimerMax;
+        return gamePlayingTimer.Value / gamePlayingTimerMax;
     }
 
     public void TogglePauseGame()
@@ -207,7 +244,7 @@ public class GameManager : MonoBehaviour
 
     public float GetEvaluatedRecipeDifficulty()
     {
-        return recipeSpawnrateDifficultyCurve.Evaluate(gamePlayingTimer / maxDifficultyScaleTime);
+        return recipeSpawnrateDifficultyCurve.Evaluate(gamePlayingTimer.Value / maxDifficultyScaleTime);
     }
 
     public Gamemode GetGamemode()
