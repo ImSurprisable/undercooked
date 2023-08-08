@@ -48,16 +48,11 @@ public class CuttingCounter : BaseCounter, IHasProgress
                     KitchenObject.DestroyKitchenObject(GetKitchenObject());
                 }
             }
-            /* DISABLED UNTIL SWAPPING IS FIXED
             else if (player.HasKitchenObject() && player.CanSwapItemsOnCounters())
             {
                 // Player is holding a non-plate object & swapping is allowed
-                KitchenObject playersKitchenObject = player.GetKitchenObject();
-                player.GetKitchenObject().ClearKitchenObjectFromParent(player);
-                GetKitchenObject().SetKitchenObjectParent(player);
-                playersKitchenObject.SetKitchenObjectParent(this);
+                SwapItemsServerRpc(player.NetworkObject);
             }
-            */
             else if (!player.HasKitchenObject())
             {
                 // Player is not holding anything
@@ -82,6 +77,24 @@ public class CuttingCounter : BaseCounter, IHasProgress
         OnProgressChanged?.Invoke(this, new IHasProgress.OnProgressChangedEventArgs {
                 progressNormalized = 0f
             });
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void SwapItemsServerRpc(NetworkObjectReference playersNetworkObjectReference)
+    {
+        SwapItemsClientRpc(playersNetworkObjectReference);
+    }
+
+    [ClientRpc]
+    private void SwapItemsClientRpc(NetworkObjectReference playersNetworkObjectReference)
+    {
+        playersNetworkObjectReference.TryGet(out NetworkObject playerNetworkObject);
+        PlayerController player = playerNetworkObject.GetComponent<PlayerController>();
+
+        KitchenObject playersKitchenObject = player.GetKitchenObject();
+        player.GetKitchenObject().ClearKitchenObjectFromParent(player);
+        GetKitchenObject().SetKitchenObjectParent(player, false);
+        playersKitchenObject.SetKitchenObjectParent(this);
     }
 
     public override void InteractAlternate(PlayerController player)

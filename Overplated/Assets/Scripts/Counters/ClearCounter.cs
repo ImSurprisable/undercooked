@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using JetBrains.Annotations;
 using Unity.Mathematics;
+using Unity.Netcode;
 using UnityEngine;
 
 public class ClearCounter : BaseCounter
@@ -30,22 +31,35 @@ public class ClearCounter : BaseCounter
                 // Counter has a plate & the player has a valid ingredient
                 KitchenObject.DestroyKitchenObject(player.GetKitchenObject());
             }
-            /* DISABLED UNTIL SWITCHING IS FIXED
             else if (player.HasKitchenObject() && player.CanSwapItemsOnCounters())
             {
                 // Player is holding a non-plate object & swapping is allowed
-                KitchenObject playersKitchenObject = player.GetKitchenObject();
-                player.GetKitchenObject().ClearKitchenObjectFromParent(player);
-                GetKitchenObject().SetKitchenObjectParent(player);
-                playersKitchenObject.SetKitchenObjectParent(this);
+                SwapItemsServerRpc(player.NetworkObject);
             }
-            */
             else if (!player.HasKitchenObject())
             {
                 // Player is not holding anything
                 GetKitchenObject().SetKitchenObjectParent(player);
             }
         }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void SwapItemsServerRpc(NetworkObjectReference playersNetworkObjectReference)
+    {
+        SwapItemsClientRpc(playersNetworkObjectReference);
+    }
+
+    [ClientRpc]
+    private void SwapItemsClientRpc(NetworkObjectReference playersNetworkObjectReference)
+    {
+        playersNetworkObjectReference.TryGet(out NetworkObject playerNetworkObject);
+        PlayerController player = playerNetworkObject.GetComponent<PlayerController>();
+
+        KitchenObject playersKitchenObject = player.GetKitchenObject();
+        player.GetKitchenObject().ClearKitchenObjectFromParent(player);
+        GetKitchenObject().SetKitchenObjectParent(player, false);
+        playersKitchenObject.SetKitchenObjectParent(this);
     }
 
     private bool TryAddIngredientToPlate(PlateKitchenObject plateKitchenObject, IKitchenObjectParent kitchenObjectParent)

@@ -141,31 +141,11 @@ public class StoveCounter : BaseCounter, IHasProgress
                     ResetProgressValuesServerRpc();
                 }
             }
-            /* DISABLED UNTIL SWAPPING IS FIXED
             else if (player.HasKitchenObject() && player.CanSwapItemsOnCounters())
             {
                 // Player is holding a non-plate object & swapping is enabled
-                KitchenObject playersKitchenObject = player.GetKitchenObject();
-                GetKitchenObject().transform.localScale = tmpKitchenObjectLocalScale;
-                player.GetKitchenObject().ClearKitchenObjectFromParent(player);
-                GetKitchenObject().SetKitchenObjectParent(player);
-                playersKitchenObject.SetKitchenObjectParent(this);
-                StoreAndReplaceObjectScale(GetKitchenObject());
-
-                UpdateKitchenRecipeSOs();
-
-                if (BurningRecipeSOWithOutputExists(GetKitchenObject().GetKitchenObjectSO())) {
-                    state.Value = State.Burnt;
-                } else if (cookingRecipeSO == null && burningRecipeSO == null) {
-                    state.Value = State.Idle;
-                } else if (cookingRecipeSO != null) {
-                    state.Value = State.Cooking;
-                } else {
-                    state.Value = State.Cooked;
-                }
-                ResetProgressValuesServerRpc();
+                SwapItemsServerRpc(player.NetworkObject);
             }
-            */
             else if (!player.HasKitchenObject())
             {
                 // Player is not holding an object
@@ -212,6 +192,37 @@ public class StoveCounter : BaseCounter, IHasProgress
     {
         KitchenObjectSO kitchenObjectSO = GameMultiplayer.Instance.GetKitchenObjectSOFromIndex(kitchenObjectSOIndex);
         UpdateKitchenRecipeSOs(kitchenObjectSO);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void SwapItemsServerRpc(NetworkObjectReference playersNetworkObjectReference)
+    {
+        SwapItemsClientRpc(playersNetworkObjectReference);
+
+        if (BurningRecipeSOWithOutputExists(GetKitchenObject().GetKitchenObjectSO())) {
+            state.Value = State.Burnt;
+        } else if (cookingRecipeSO == null && burningRecipeSO == null) {
+            state.Value = State.Idle;
+        } else if (cookingRecipeSO != null) {
+            state.Value = State.Cooking;
+        } else {
+            state.Value = State.Cooked;
+        }
+        ResetProgressValues();
+    }
+
+    [ClientRpc]
+    private void SwapItemsClientRpc(NetworkObjectReference playersNetworkObjectReference)
+    {
+        playersNetworkObjectReference.TryGet(out NetworkObject playerNetworkObject);
+        PlayerController player = playerNetworkObject.GetComponent<PlayerController>();
+
+        KitchenObject playersKitchenObject = player.GetKitchenObject();
+        // GetKitchenObject().transform.localScale = tmpKitchenObjectLocalScale;
+        player.GetKitchenObject().ClearKitchenObjectFromParent(player);
+        GetKitchenObject().SetKitchenObjectParent(player);
+        playersKitchenObject.SetKitchenObjectParent(this);
+        // StoreAndReplaceObjectScale(GetKitchenObject());
     }
 
     private KitchenObjectSO GetOutputForInput(KitchenObjectSO inputKitchenObjectSO)
