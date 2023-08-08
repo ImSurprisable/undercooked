@@ -41,6 +41,9 @@ public class GameManager : MonoBehaviour
 
     private bool newBest = false;
 
+    public static bool playerCollisionsEnabled;
+    [SerializeField] private bool playerCollisionsEnabledEditor;
+
 
     
 
@@ -63,6 +66,9 @@ public class GameManager : MonoBehaviour
         // DEBUG SKIP INTRO
         state = State.CountdownToStart;
         OnStateChanged?.Invoke(this, EventArgs.Empty);
+
+        // DEBUG MANUALLY SET PLAYERCOLLISIONS (ADD TO LOBBY MENU!!!!)
+        playerCollisionsEnabled = playerCollisionsEnabledEditor;
     }
 
     private void GameInput_OnInteractAction(object sender, EventArgs e)
