@@ -398,7 +398,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a26cd468453f4034fa579a5298ecefbe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  volumeMultiplier: 1
+  volumeMultiplier: 0.35
 --- !u!1 &72822960
 GameObject:
   m_ObjectHideFlags: 0
