@@ -199,16 +199,7 @@ public class StoveCounter : BaseCounter, IHasProgress
     {
         SwapItemsClientRpc(playersNetworkObjectReference);
 
-        if (BurningRecipeSOWithOutputExists(GetKitchenObject().GetKitchenObjectSO())) {
-            state.Value = State.Burnt;
-        } else if (cookingRecipeSO == null && burningRecipeSO == null) {
-            state.Value = State.Idle;
-        } else if (cookingRecipeSO != null) {
-            state.Value = State.Cooking;
-        } else {
-            state.Value = State.Cooked;
-        }
-        ResetProgressValues();
+        InteractLogicPlaceObjectOnCounterServerRpc(GameMultiplayer.Instance.GetKitchenObjectSOIndex(GetKitchenObject().GetKitchenObjectSO()));
     }
 
     [ClientRpc]

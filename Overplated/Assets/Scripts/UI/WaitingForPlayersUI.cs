@@ -20,7 +20,6 @@ public class WaitingForPlayersUI : MonoBehaviour
 
     private void GameManager_OnStateChanged(object sender, EventArgs e)
     {
-        Debug.Log("Recieved state change: " + GameManager.Instance.IsCountdownToStartActive());
         if (GameManager.Instance.IsCountdownToStartActive()) {
             Hide();
         }

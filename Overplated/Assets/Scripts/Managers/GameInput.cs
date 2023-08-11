@@ -20,14 +20,12 @@ public class GameInput : MonoBehaviour
     public enum Binding { Move_Up, Move_Left, Move_Down, Move_Right, Interact, InteractAlternate,
                           Gamepad_Interact, Gamepad_InteractAlternate }
 
-    private PlayerInputActions playerInputActions;
+    private static PlayerInputActions playerInputActions = new PlayerInputActions();
     public static bool isUsingController;
     
     private void Awake()
     {
         Instance = this;
-        
-        playerInputActions = new PlayerInputActions();
 
         if (PlayerPrefs.HasKey(PLAYER_PREFS_BINDINGS)) {
             playerInputActions.LoadBindingOverridesFromJson(PlayerPrefs.GetString(PLAYER_PREFS_BINDINGS));
@@ -94,7 +92,7 @@ public class GameInput : MonoBehaviour
         return inputVector;
     }
 
-    public string GetBindingText(Binding binding)
+    public static string GetBindingText(Binding binding)
     {
         switch (binding) {
             default:
@@ -117,7 +115,7 @@ public class GameInput : MonoBehaviour
         }
     }
 
-    public void RebindBinding(Binding binding, Action onActionRebound)
+    public static void RebindBinding(Binding binding, Action onActionRebound)
     {
         playerInputActions.Player.Disable();
 
@@ -168,7 +166,9 @@ public class GameInput : MonoBehaviour
 
                 PlayerPrefs.SetString(PLAYER_PREFS_BINDINGS, playerInputActions.SaveBindingOverridesAsJson());
 
-                OnBindingRebind?.Invoke(this, EventArgs.Empty);
+                if (Instance != null) {
+                    Instance.OnBindingRebind?.Invoke(Instance, EventArgs.Empty);
+                }
              })
              .Start();
     }

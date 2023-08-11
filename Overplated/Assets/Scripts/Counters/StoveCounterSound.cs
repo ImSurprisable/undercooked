@@ -26,6 +26,14 @@ public class StoveCounterSound : MonoBehaviour
     {
         stoveCounter.OnStateChanged += StoveCounter_OnStateChanged;
         stoveCounter.OnProgressChanged += StoveCounter_OnProgressChanged;
+        SoundManager.Instance.OnSoundEffectVolumeChanged += SoundManager_OnSoundEffectVolumeChanged;
+
+        audioSource.volume = SoundManager.GetVolume();
+    }
+
+    private void SoundManager_OnSoundEffectVolumeChanged(object sender, SoundManager.OnSoundEffectVolumeChangedEventArgs e)
+    {
+        audioSource.volume = e.volume;
     }
 
     private void StoveCounter_OnProgressChanged(object sender, IHasProgress.OnProgressChangedEventArgs e)

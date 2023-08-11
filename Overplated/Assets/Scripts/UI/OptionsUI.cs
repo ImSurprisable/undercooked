@@ -57,7 +57,9 @@ public class OptionsUI : MonoBehaviour
         closeButton.onClick.AddListener(() => {
             PlayerPrefs.Save();
             Hide();
-            GamePauseUI.Instance.Show();
+            if (GamePauseUI.Instance != null) {
+                GamePauseUI.Instance.Show();
+            }
         });
         resetBestButton.onClick.AddListener(() => {
             PlayerPrefs.SetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, 0);
@@ -80,13 +82,15 @@ public class OptionsUI : MonoBehaviour
 
     private void Start()
     {
-        GameManager.Instance.OnGameUnpaused += GameManager_OnGameUnpaused;
+        if (GameManager.Instance != null) {
+            GameManager.Instance.OnGameUnpaused += GameManager_OnGameUnpaused;
+        }
 
-        float musicVolume = MusicManager.Instance.GetVolume();
+        float musicVolume = MusicManager.GetVolume();
         musicSlider.value = musicVolume * 20f; // 20f - slider max
         ChangeMusicVolumeValue(musicSlider.value);
 
-        float sfxVolume = SoundManager.Instance.GetVolume();
+        float sfxVolume = SoundManager.GetVolume();
         sfxSlider.value = sfxVolume * 20f; // 20f - slider max
         ChangeSFXVolumeValue(sfxSlider.value);
 
@@ -118,7 +122,7 @@ public class OptionsUI : MonoBehaviour
     }
     public void ChangeSFXVolumeValue(float value)
     {
-        SoundManager.Instance.ChangeVolume(value / 20); // 20f - slider max
+        SoundManager.ChangeVolume(value / 20); // 20f - slider max
 
         sfxValueText.text = ((value * 5) / 100).ToString("F2"); // 5 & 100 - convert to range of slider max (20)
 
@@ -131,14 +135,14 @@ public class OptionsUI : MonoBehaviour
 
     private void UpdateVisual()
     {
-        moveUpText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Up);
-        moveLeftText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Left);
-        moveDownText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Down);
-        moveRightText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Right);
-        interactText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Interact);
-        interactAlternateText.text = GameInput.Instance.GetBindingText(GameInput.Binding.InteractAlternate);
-        gamepadInteractText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Gamepad_Interact);
-        gamepadInteractAlternateText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Gamepad_InteractAlternate);
+        moveUpText.text = GameInput.GetBindingText(GameInput.Binding.Move_Up);
+        moveLeftText.text = GameInput.GetBindingText(GameInput.Binding.Move_Left);
+        moveDownText.text = GameInput.GetBindingText(GameInput.Binding.Move_Down);
+        moveRightText.text = GameInput.GetBindingText(GameInput.Binding.Move_Right);
+        interactText.text = GameInput.GetBindingText(GameInput.Binding.Interact);
+        interactAlternateText.text = GameInput.GetBindingText(GameInput.Binding.InteractAlternate);
+        gamepadInteractText.text = GameInput.GetBindingText(GameInput.Binding.Gamepad_Interact);
+        gamepadInteractAlternateText.text = GameInput.GetBindingText(GameInput.Binding.Gamepad_InteractAlternate);
     }
 
 
@@ -165,7 +169,7 @@ public class OptionsUI : MonoBehaviour
     private void RebindBinding(GameInput.Binding binding)
     {
         ShowPressToRebindKey();
-        GameInput.Instance.RebindBinding(binding, () => {
+        GameInput.RebindBinding(binding, () => {
             HidePressToRebindKey();
             UpdateVisual();
         });

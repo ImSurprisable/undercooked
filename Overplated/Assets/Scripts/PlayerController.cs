@@ -32,6 +32,7 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
     [SerializeField] private LayerMask collisionPlayersLayerMask;
     [SerializeField] private Transform kitchenObjectHoldPoint;
     [SerializeField] private PlayerAnimator playerAnimator;
+    [SerializeField] private PlayerVisual playerVisual;
     [SerializeField] private List<Vector3> spawnPositionList = new List<Vector3>();
 
     [Space]
@@ -59,6 +60,9 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
         
         GameInput.Instance.OnInteractAction += GameInput_OnInteractAction;
         GameInput.Instance.OnInteractAlternateAction += GameInput_OnInteractAlternateAction;
+
+        PlayerData playerData = GameMultiplayer.Instance.GetPlayerDataFromClientId(OwnerClientId);
+        playerVisual.SetPlayerColor(GameMultiplayer.Instance.GetPlayerColor(playerData.colorId));
     }
 
     public override void OnNetworkSpawn()
@@ -67,9 +71,20 @@ public class PlayerController : NetworkBehaviour, IKitchenObjectParent
             LocalInstance = this;
         }
 
-        transform.position = spawnPositionList[(int)OwnerClientId];
+        transform.position = spawnPositionList[GameMultiplayer.Instance.GetPlayerDataIndexFromClientId(OwnerClientId)];
         OnAnyPlayerSpawned?.Invoke(this, EventArgs.Empty);
+
+        if (IsServer) {
+            NetworkManager.Singleton.OnClientDisconnectCallback += NetworkManager_OnClientDisconnectCallback;
+        }
     }
+
+    private void NetworkManager_OnClientDisconnectCallback(ulong clientId)
+    {
+        if (clientId == OwnerClientId && HasKitchenObject()) {
+            KitchenObject.DestroyKitchenObject(GetKitchenObject());
+        }
+    }   
 
     private void GameInput_OnInteractAction(object sender, System.EventArgs e)
     {

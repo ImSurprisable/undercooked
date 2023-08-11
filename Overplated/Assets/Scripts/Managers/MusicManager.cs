@@ -11,7 +11,7 @@ public class MusicManager : MonoBehaviour
 
     private AudioSource audioSource;
     [SerializeField] private float volumeMultiplier;
-    private float volume;
+    private static float volume = 1f;
 
 
 
@@ -23,6 +23,7 @@ public class MusicManager : MonoBehaviour
         audioSource = GetComponent<AudioSource>();
 
         volume = PlayerPrefs.GetFloat(PLAYER_PREFS_MUSIC_VOLUME, 1f);
+        
         audioSource.volume = volumeMultiplier * volume;
     }
 
@@ -35,7 +36,7 @@ public class MusicManager : MonoBehaviour
         PlayerPrefs.SetFloat(PLAYER_PREFS_MUSIC_VOLUME, volume);
     }
 
-    public float GetVolume()
+    public static float GetVolume()
     {
         return volume;
     }

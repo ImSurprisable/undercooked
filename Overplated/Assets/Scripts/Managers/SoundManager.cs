@@ -10,9 +10,14 @@ public class SoundManager : MonoBehaviour
 
     public static SoundManager Instance { get; private set; }
 
+    public event EventHandler<OnSoundEffectVolumeChangedEventArgs> OnSoundEffectVolumeChanged;
+    public class OnSoundEffectVolumeChangedEventArgs : EventArgs {
+        public float volume;
+    }
+
     [SerializeField] private AudioClipRefsSO clipLibrary;
 
-    private float volume = 1f;
+    private static float volume = 1f;
 
 
 
@@ -96,14 +101,20 @@ public class SoundManager : MonoBehaviour
         PlaySound(clipLibrary.warning[0], position, volumeMultiplier * volume);
     }
 
-    public void ChangeVolume(float value)
+    public static void ChangeVolume(float value)
     {
         volume = value;
 
         PlayerPrefs.SetFloat(PLAYER_PREFS_SOUND_EFFECTS_VOLUME, volume);
+
+        if (Instance != null) {
+            Instance.OnSoundEffectVolumeChanged?.Invoke(Instance, new OnSoundEffectVolumeChangedEventArgs {
+                volume = volume
+            });
+        }
     }
 
-    public float GetVolume()
+    public static float GetVolume()
     {
         return volume;
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,7 +16,6 @@ public class GameOverUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI recipesDeliveredText;
     [SerializeField] private TextMeshProUGUI recipesFailedText;
     [SerializeField] private TextMeshProUGUI recipesDeliveredBestText;
-    [SerializeField] private Button restartButton;
     [SerializeField] private Button mainMenuButton;
 
     private Animator animator;
@@ -28,10 +28,8 @@ public class GameOverUI : MonoBehaviour
     {
         animator = GetComponent<Animator>();
 
-        restartButton.onClick.AddListener(() => {
-            Loader.Load(Loader.Scene.GameScene);
-        });
         mainMenuButton.onClick.AddListener(() => {
+            NetworkManager.Singleton.Shutdown();
             Loader.Load(Loader.Scene.MainMenuScene);
         });
     }

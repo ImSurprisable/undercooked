@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -23,6 +24,7 @@ public class GamePauseUI : MonoBehaviour
             GameManager.Instance.TogglePauseGame();
         });
         mainMenuButton.onClick.AddListener(() => {
+            NetworkManager.Singleton.Shutdown();
             Loader.Load(Loader.Scene.MainMenuScene);
         });
         optionsButton.onClick.AddListener(() => {
@@ -42,11 +44,17 @@ public class GamePauseUI : MonoBehaviour
     private void GameManager_OnGamePaused(object sender, EventArgs e)
     {
         Show();
+
+        if (GameMultiplayer.playSingleplayer) {
+            Time.timeScale = 0f;
+        }
     }
 
     private void GameManager_OnGameUnpaused(object sender, EventArgs e)
     {
         Hide();
+
+        Time.timeScale = 1f;
     }
 
 
@@ -56,6 +64,10 @@ public class GamePauseUI : MonoBehaviour
         gameObject.SetActive(true);
 
         if (GameInput.isUsingController) resumeButton.Select();
+
+        if (GameMultiplayer.playSingleplayer) {
+            Time.timeScale = 0f;
+        }
     }
     private void Hide()
     {

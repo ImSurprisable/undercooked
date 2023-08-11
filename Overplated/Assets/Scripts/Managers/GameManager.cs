@@ -5,6 +5,7 @@ using System.Threading;
 using Unity.Netcode;
 using UnityEditor.Rendering;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : NetworkBehaviour
 {
@@ -24,10 +25,11 @@ public class GameManager : NetworkBehaviour
     private enum State { WaitingToStart, CountdownToStart, GamePlaying, GameOver }
     private NetworkVariable<State> state = new NetworkVariable<State>(State.WaitingToStart);
 
-    public enum Gamemode { Timer, Survival }
-    [SerializeField] private Gamemode gamemode;
+    public enum Gamemode { Survival, Timer }
 
     private Dictionary<ulong, bool> playerReadyDictionary = new Dictionary<ulong, bool>();
+
+    [SerializeField] private Transform playerPrefab;
 
     [SerializeField] private float countdownToStartTimerMax;
     private NetworkVariable<float> countdownToStartTimer = new NetworkVariable<float>(3f);
@@ -42,14 +44,13 @@ public class GameManager : NetworkBehaviour
     [SerializeField] private AnimationCurve recipeSpawnrateDifficultyCurve;
     [SerializeField] private float maxDifficultyScaleTime;
 
-    private float currentHealthBarValue = 0f;
+    private NetworkVariable<float> currentHealthBarValue = new NetworkVariable<float>(0f);
     private bool isGamePaused = false;
     private bool isLocalPlayerReady;
     private bool newBest = false;
 
     public static bool playerCollisionsEnabled;
-    [SerializeField] private bool playerCollisionsEnabledEditor;
-
+    public static Gamemode gamemode;
 
     
 
@@ -58,6 +59,8 @@ public class GameManager : NetworkBehaviour
         Instance = this;
     }
 
+
+
     private void Start()
     {
         GameInput.Instance.OnPauseAction += GameInput_OnPauseAction;
@@ -65,14 +68,32 @@ public class GameManager : NetworkBehaviour
 
         countdownToStartTimer.Value = countdownToStartTimerMax;
         gamePlayingTimer.Value = gamemode == Gamemode.Timer  ?  gamePlayingTimerMax : 0f;
-
-        // DEBUG MANUALLY SET PLAYERCOLLISIONS (ADD TO LOBBY MENU!!!!)
-        playerCollisionsEnabled = playerCollisionsEnabledEditor;
     }
 
     public override void OnNetworkSpawn()
     {
         state.OnValueChanged += State_OnValueChanged;
+        currentHealthBarValue.OnValueChanged += CurrentHealthBarValue_OnValueChanged;
+
+        if (IsServer)
+        {
+            NetworkManager.Singleton.SceneManager.OnLoadEventCompleted += SceneManager_OnLoadEventCompleted;
+        }
+    }
+
+    private void CurrentHealthBarValue_OnValueChanged(float previousValue, float newValue)
+    {
+        InvokeHealthBarChanged(newValue);
+    }
+
+    private void SceneManager_OnLoadEventCompleted(string sceneName, LoadSceneMode loadSceneMode, List<ulong> clientsCompleted, List<ulong> clientsTimedOut)
+    {
+        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            Transform playerTransform = Instantiate(playerPrefab);
+            playerTransform.GetComponent<NetworkObject>().SpawnAsPlayerObject(clientId, true);
+        }
+        
     }
 
     private void State_OnValueChanged(State previousValue, State newValue)
@@ -154,10 +175,9 @@ public class GameManager : NetworkBehaviour
                     if (DeliveryManager.Instance.RecipeListIsFull())
                     {
                         // fill health bar
-                        currentHealthBarValue += currentHealthBarValue < 1  ?  healthBarFillSpeed * Time.deltaTime : 0f;
-                        InvokeHealthBarChanged(currentHealthBarValue);
+                        currentHealthBarValue.Value += currentHealthBarValue.Value < 1  ?  healthBarFillSpeed * Time.deltaTime : 0f;
 
-                        if (currentHealthBarValue >= 1) {
+                        if (currentHealthBarValue.Value >= 1) {
                             if (PlayerPrefs.GetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, 0) < DeliveryManager.Instance.GetSuccessfulRecipesAmount()) 
                             {
                                 PlayerPrefs.SetInt(PLAYER_PREFS_BEST_SURVIVAL_SCORE, DeliveryManager.Instance.GetSuccessfulRecipesAmount());
@@ -172,8 +192,7 @@ public class GameManager : NetworkBehaviour
                     else
                     {
                         // empty health bar
-                        currentHealthBarValue = currentHealthBarValue > 0  ?  currentHealthBarValue - healthBarEmptySpeed * Time.deltaTime : 0f;
-                        InvokeHealthBarChanged(currentHealthBarValue);
+                        currentHealthBarValue.Value = currentHealthBarValue.Value > 0  ?  currentHealthBarValue.Value - healthBarEmptySpeed * Time.deltaTime : 0f;
                     }
                 }
                 break;
@@ -189,6 +208,10 @@ public class GameManager : NetworkBehaviour
 
 
     public bool IsTutorialOpen()
+    {
+        return state.Value == State.WaitingToStart;
+    }
+    public bool IsWaitingToStart()
     {
         return state.Value == State.WaitingToStart;
     }
@@ -225,12 +248,12 @@ public class GameManager : NetworkBehaviour
         isGamePaused = !isGamePaused;
         if (isGamePaused)
         {
-            Time.timeScale = 0f;
+            // Time.timeScale = 0f;
             OnGamePaused?.Invoke(this, EventArgs.Empty);
         }
         else
         {
-            Time.timeScale = 1f;
+            // Time.timeScale = 1f;
             OnGameUnpaused?.Invoke(this, EventArgs.Empty);
         }
     }
