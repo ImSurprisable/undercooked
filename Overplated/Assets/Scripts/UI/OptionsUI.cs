@@ -135,14 +135,14 @@ public class OptionsUI : MonoBehaviour
 
     private void UpdateVisual()
     {
-        moveUpText.text = GameInput.GetBindingText(GameInput.Binding.Move_Up);
-        moveLeftText.text = GameInput.GetBindingText(GameInput.Binding.Move_Left);
-        moveDownText.text = GameInput.GetBindingText(GameInput.Binding.Move_Down);
-        moveRightText.text = GameInput.GetBindingText(GameInput.Binding.Move_Right);
-        interactText.text = GameInput.GetBindingText(GameInput.Binding.Interact);
-        interactAlternateText.text = GameInput.GetBindingText(GameInput.Binding.InteractAlternate);
-        gamepadInteractText.text = GameInput.GetBindingText(GameInput.Binding.Gamepad_Interact);
-        gamepadInteractAlternateText.text = GameInput.GetBindingText(GameInput.Binding.Gamepad_InteractAlternate);
+        moveUpText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Up);
+        moveLeftText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Left);
+        moveDownText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Down);
+        moveRightText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Move_Right);
+        interactText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Interact);
+        interactAlternateText.text = GameInput.Instance.GetBindingText(GameInput.Binding.InteractAlternate);
+        gamepadInteractText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Gamepad_Interact);
+        gamepadInteractAlternateText.text = GameInput.Instance.GetBindingText(GameInput.Binding.Gamepad_InteractAlternate);
     }
 
 
@@ -169,7 +169,7 @@ public class OptionsUI : MonoBehaviour
     private void RebindBinding(GameInput.Binding binding)
     {
         ShowPressToRebindKey();
-        GameInput.RebindBinding(binding, () => {
+        GameInput.Instance.RebindBinding(binding, () => {
             HidePressToRebindKey();
             UpdateVisual();
         });
